@@ -1,0 +1,22 @@
+.{
+    .name = .backend,
+
+    .version = "0.0.0",
+
+    .fingerprint = 0x8fe5c9718d552a25,
+
+    .minimum_zig_version = "0.14.0",
+
+    .dependencies = .{
+        .zap = .{
+            .url = "git+https://github.com/zigzap/zap?ref=v0.10.1#9543ede15fc9ad038ec4839628c886b124580983",
+            .hash = "zap-0.8.0-AAAAAHquIwC7Et6QVdWF7gsZyMnaQa1JpmD12ovhNyx7",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
