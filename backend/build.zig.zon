@@ -3,16 +3,16 @@
 
     .version = "0.0.0",
 
-    .fingerprint = 0x8fe5c9718d552a25,
-
-    .minimum_zig_version = "0.14.0",
-
     .dependencies = .{
         .zap = .{
-            .url = "git+https://github.com/zigzap/zap?ref=v0.10.1#9543ede15fc9ad038ec4839628c886b124580983",
-            .hash = "zap-0.8.0-AAAAAHquIwC7Et6QVdWF7gsZyMnaQa1JpmD12ovhNyx7",
+            .url = "git+https://github.com/zigzap/zap?ref=v0.10.1#8d187310c7ee4f86faa7ef0ecdac0bf747216dea",
+            .hash = "zap-0.9.1-GoeB84M8JACjZKDNq2LA5hB24Z-ZrZ_HUKRXd8qxL2JW",
         },
     },
+
+    .fingerprint = 0x8fe5c9717502d20e,
+
+    .minimum_zig_version = "0.14.0",
 
     .paths = .{
         "build.zig",
