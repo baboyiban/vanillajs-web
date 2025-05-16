@@ -26,6 +26,6 @@ pub fn main() !void {
 
     zap.start(.{
         .threads = 2,
-        .workers = 1, // 1 worker enables sharing state between threads
+        .workers = 1,
     });
 }
