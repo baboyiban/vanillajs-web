@@ -1,37 +1,77 @@
 const std = @import("std");
+const fs = std.fs;
+const mem = std.mem;
+const fmt = std.fmt;
+
 const zap = @import("zap");
 
-/// 요청 핸들러: 에러를 던질 수 있는 함수 (!void)
-fn on_request(r: zap.Request) !void {
-    if (r.path) |the_path| {
-        std.debug.print("PATH: {s}\n", .{the_path});
-    }
-
-    if (r.query) |the_query| {
-        std.debug.print("QUERY: {s}\n", .{the_query});
-    }
-
-    // sendBody는 오류가 발생할 수 있으므로 try 사용
-    try r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>");
-}
+// 정적 파일을 제공할 디렉토리 (main.zig 기준 상대 경로)
+const STATIC_DIR = "../../frontend";
 
 pub fn main() !void {
-    // HTTP 리스너 설정
     var listener = zap.HttpListener.init(.{
         .port = 3000,
-        .on_request = on_request, // 시그니처가 !void 여야 함
+        .on_request = serveStatic,
         .log = true,
         .max_clients = 100_000,
     });
 
-    // 포트 열기
     try listener.listen();
-
     std.debug.print("Listening on 0.0.0.0:3000\n", .{});
 
-    // 서버 시작 (워커와 스레드 개수 지정)
     zap.start(.{
         .threads = 2,
         .workers = 1,
     });
+}
+
+/// 정적 파일 서빙용 미들웨어
+fn serveStatic(r: zap.Request) !void {
+    const path = r.path orelse "/";
+    if (mem.eql(u8, path, "/")) {
+        // 루트 경로 -> index.html 리다이렉트
+        r.sendBody(
+            \\HTTP/1.1 302 Found
+            \\Location: /index.html
+            \\
+        ) catch {
+            r.sendError(error.InternalServerError, null, 500);
+            return;
+        };
+        return;
+    }
+
+    // 보안상 위험한 경로 차단
+    if (mem.startsWith(u8, path, "../") or mem.indexOf(u8, path, "..") != null) {
+        r.sendError(error.Forbidden, null, 403);
+        return;
+    }
+
+    // 직접 arena 생성
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    // 실제 파일 경로 조합
+    const file_path = fmt.allocPrint(arena.allocator(), "{s}/{s}", .{ STATIC_DIR, path }) catch {
+        r.sendError(error.InternalServerError, null, 500);
+        return;
+    };
+
+    // 파일 열기 시도
+    const file = fs.openFileAbsolute(file_path, .{}) catch {
+        r.sendError(error.NotFound, null, 404);
+        return;
+    };
+    defer file.close();
+
+    // 파일 내용 읽기
+    const contents = file.readToEndAlloc(arena.allocator(), 1024 * 1024) catch {
+        r.sendError(error.InternalServerError, null, 500);
+        return;
+    };
+
+    // 클라이언트에 전송
+    r.sendBody(contents) catch {
+        r.sendError(error.InternalServerError, null, 500);
+    };
 }
